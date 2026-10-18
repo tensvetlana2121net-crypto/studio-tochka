@@ -358,7 +358,12 @@ $('load').onclick=()=>$('file').click();$('file').onchange=async()=>{const f=$('
 $('full').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('stage').requestFullscreen()}catch(e){error('Не удалось открыть полный экран: '+e.message)}};
 document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT|BUTTON/.test(e.target.tagName))return;if(e.code==='Space'){e.preventDefault();toggle()}if(e.code==='Home'){offset=0;render()}if(e.code==='ArrowUp'){e.preventDefault();offset=Math.max(0,offset-80);render()}if(e.code==='ArrowDown'){e.preventDefault();offset+=80;render()}});
 $('viewport').addEventListener('wheel',e=>{e.preventDefault();offset=Math.max(0,Math.min($('script').offsetHeight-$('viewport').clientHeight,offset+e.deltaY));render()},{passive:false});
-async function devices(){const list=await navigator.mediaDevices.enumerateDevices();for(const [id,kind] of [['camera','videoinput'],['mic','audioinput']]){const chosen=$(id).value;$(id).replaceChildren(new Option('По умолчанию',''));list.filter(d=>d.kind===kind).forEach((d,i)=>$(id).add(new Option(d.label||`${id==='mic'?'Микрофон':'Камера'} ${i+1}`,d.deviceId)));if([...$(id).options].some(o=>o.value===chosen))$(id).value=chosen}}
+let audioPreferences={};try{audioPreferences=JSON.parse(localStorage.getItem('tochka-audio-settings')||'{}')||{}}catch(e){}
+const isRode=d=>/wireless\s*go\s*ii|wireless\s*go\s*2/i.test(d.label||'');
+function preferredMic(list){const inputs=list.filter(d=>d.kind==='audioinput'&&!['default','communications'].includes(d.deviceId));return inputs.find(d=>d.deviceId===audioPreferences.deviceId)||inputs.find(d=>d.label&&d.label===audioPreferences.label)||inputs.find(isRode);}
+function saveAudioPreferences(){try{localStorage.setItem('tochka-audio-settings',JSON.stringify(audioPreferences))}catch(e){}}
+for(const id of ['mode','audioFormat']){if([...$(id).options].some(o=>o.value===audioPreferences[id]))$(id).value=audioPreferences[id];$(id).addEventListener('change',()=>{audioPreferences[id]=$(id).value;saveAudioPreferences()});}
+async function devices(){const list=await navigator.mediaDevices.enumerateDevices();for(const [id,kind] of [['camera','videoinput'],['mic','audioinput']]){const chosen=$(id).value;$(id).replaceChildren(new Option('По умолчанию',''));list.filter(d=>d.kind===kind).forEach((d,i)=>$(id).add(new Option(d.label||`${id==='mic'?'Микрофон':'Камера'} ${i+1}`,d.deviceId)));if([...$(id).options].some(o=>o.value===chosen))$(id).value=chosen;if(id==='mic'&&!audioStream&&(!chosen||![...$(id).options].some(o=>o.value===chosen))){const preferred=preferredMic(list);if(preferred)$(id).value=preferred.deviceId;}}return list;}
 
 let cameraStream=null,audioStream=null,directory=null,busy=false,jobs=[];
 function controls(lock=false){busy=lock;for(const id of ['connectCamera','connectAudio','camera','mic','mode','audioFormat','folder','defaultFolder'])$(id).disabled=lock;$('record').disabled=lock||!audioStream?.getAudioTracks().some(t=>t.readyState==='live')||typeof MediaRecorder==='undefined';$('stop').disabled=!recordStart;}
@@ -366,20 +371,26 @@ async function connect(kind){
  if(busy)return;controls(true);error('');
  try{
   if(!navigator.mediaDevices?.getUserMedia)throw Error('Требуется HTTPS и доступ к устройствам.');
-  const isAudio=kind==='audio',id=isAudio?'mic':'camera',selected=$(id).value;
+  const isAudio=kind==='audio',id=isAudio?'mic':'camera';if(isAudio)await devices();const selected=$(id).value;
   const input=selected?{deviceId:{exact:selected}}:{};
-  const fresh=await navigator.mediaDevices.getUserMedia(isAudio?{audio:{...input,echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:{ideal:2}},video:false}:{video:input,audio:false});
+  let fresh=await navigator.mediaDevices.getUserMedia(isAudio?{audio:{...input,echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:{ideal:2}},video:false}:{video:input,audio:false});
   if(isAudio){
+   const list=await navigator.mediaDevices.enumerateDevices();const preferred=preferredMic(list);
+   if(!selected&&preferred&&fresh.getAudioTracks()[0].getSettings().deviceId!==preferred.deviceId){fresh.getTracks().forEach(t=>t.stop());fresh=await navigator.mediaDevices.getUserMedia({video:false,audio:{deviceId:{exact:preferred.deviceId},echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:{ideal:2}}});}
+   if(!selected&&!preferred){fresh.getTracks().forEach(t=>t.stop());throw Error('RØDE Wireless GO II не найден. Подключите приёмник RX или явно выберите другой микрофон.');}
    audioStream?.getTracks().forEach(t=>t.stop());audioStream=fresh;
+   const track=fresh.getAudioTracks()[0];audioPreferences={...audioPreferences,deviceId:track.getSettings().deviceId,label:track.label,mode:$('mode').value,audioFormat:$('audioFormat').value};saveAudioPreferences();$('mic').value=audioPreferences.deviceId;
    if(audioContext)await audioContext.close();analyser=null;
    try{audioContext=new AudioContext();await audioContext.resume();analyser=audioContext.createAnalyser();analyser.fftSize=512;audioContext.createMediaStreamSource(fresh).connect(analyser)}catch(e){error('Звук подключён, индикатор уровня недоступен.')}
   }else{cameraStream?.getTracks().forEach(t=>t.stop());cameraStream=fresh;$('video').srcObject=fresh;}
   fresh.getTracks().forEach(t=>t.addEventListener('ended',()=>{if(recordStart)stopRecording();controls(Boolean(recordStart));error('Устройство отключилось. Переподключите его.');}));
   await devices();$(isAudio?'connectAudio':'connectCamera').textContent=isAudio?'Переподключить звук':'Переподключить камеру';
-  $('state').textContent=isAudio?'Звук подключён':'Камера подключена';
+  $('state').textContent=isAudio?'Звук подключён: '+audioStream.getAudioTracks()[0].label:'Камера подключена';
  }catch(e){error('Не удалось подключить: '+e.message)}finally{controls(false)}
 }
 $('connectCamera').onclick=()=>connect('video');$('connectAudio').onclick=()=>connect('audio');
+async function restoreAudio(){try{await devices();const permission=await navigator.permissions.query({name:'microphone'});if(permission.state==='granted'&&$('mic').value)await connect('audio');}catch(e){/* Подключение доступно вручную, если автоматическое не поддерживается. */}}
+if(navigator.mediaDevices){restoreAudio();navigator.mediaDevices.addEventListener('devicechange',()=>{if(!busy)devices().catch(()=>{});});}
 $('folder').onclick=async()=>{
  if(!window.showDirectoryPicker){error('Выбор папки доступен в Chrome и Edge. Здесь используйте скачивание.');return}
  try{directory=await showDirectoryPicker({mode:'readwrite'});$('destination').textContent='Папка записи: '+directory.name;error('')}catch(e){if(e.name!=='AbortError')error('Не удалось выбрать папку: '+e.message)}
