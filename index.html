@@ -8,12 +8,20 @@ html[data-theme="ocean"]{--bg:#091c28;--panel:#132f40;--field:#0b2230;--border:#
 html[data-theme="forest"]{--bg:#0c211a;--panel:#18372b;--field:#10261e;--border:#43755b;--accent:#267547;--glow:#38ad6029}
 html[data-theme="berry"]{--bg:#25111d;--panel:#3a2030;--field:#291522;--border:#83546e;--accent:#a03970;--glow:#de4b9629}
 body{background:radial-gradient(ellipse at top right,var(--glow),transparent 65%),var(--bg)}aside{background:var(--panel);border:1px solid var(--border)}header{border-color:var(--border)}textarea,select,input[type=number]{background:var(--field);border-color:var(--border)}button,.download{background:var(--accent)}input,meter{accent-color:var(--accent)}.toolbar{background:var(--panel)}.stage{background:#000}.script{color:#fff}button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #f5c65c;outline-offset:3px}
+
+.cue-tools{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.cue-tools button{font-size:13px;padding:8px;margin:0;border:2px solid transparent}.cue-tools [data-cue]{color:#161b22;font-weight:700}.cue-tools [data-cue="yellow"],.cue-yellow{background:#ffe08a}.cue-tools [data-cue="blue"],.cue-blue{background:#a8d9ff}.cue-tools [data-cue="green"],.cue-green{background:#b7edbd}.cue-tools [data-cue="pink"],.cue-pink{background:#ffc2df}.cue-tools [data-cue=""]{background:#e6e6ed}.cue{color:#161b22;box-decoration-break:clone;-webkit-box-decoration-break:clone;border-radius:.12em;padding:0 .04em}.cue-preview{background:#000;color:#fff;padding:12px;border:1px solid var(--border);border-radius:8px;max-height:160px;overflow:auto;white-space:pre-wrap;line-height:1.7;overflow-wrap:anywhere}.cue-tools button:focus-visible{border-color:#fff;outline:2px solid #000}
 </style>
 <header><h1>Студия Точка <small>телесуфлёр</small></h1><span id="clock">00:00</span></header>
 <main><aside>
 <p class="status">Автор проекта — Светлана Тен<br>Телестудия «Точка»</p>
 <label for="theme">Цвет интерфейса</label><select id="theme"><option value="classic">Классическая — чёрная</option><option value="violet">Фиолетовая</option><option value="ocean">Морская — синяя</option><option value="forest">Лесная — зелёная</option><option value="berry">Ягодная — розовая</option></select>
 <label for="editor">Текст выступления</label><textarea id="editor" placeholder="Вставьте текст…"></textarea>
+
+<fieldset style="border:1px solid var(--border);border-radius:8px;margin:12px 0;padding:10px"><legend>Цветные реплики и ударения</legend>
+<p class="status" style="margin:0">Выделите фрагмент в поле текста, в предпросмотре или на экране суфлёра. Затем нажмите цвет. Цвета можно закрепить за ведущими.</p>
+<div class="cue-tools" role="group" aria-label="Цвет фона выделенного текста"><button type="button" data-cue="yellow">Жёлтый</button><button type="button" data-cue="blue">Голубой</button><button type="button" data-cue="green">Зелёный</button><button type="button" data-cue="pink">Розовый</button><button type="button" data-cue="">Убрать фон</button><button type="button" id="accent">Ударение а́</button></div>
+<p id="cueStatus" class="status" role="status">Для ударения выделите гласную или поставьте курсор сразу после неё. Удалить знак можно клавишей Backspace.</p>
+<label for="cuePreview">Предпросмотр разметки</label><div id="cuePreview" class="cue-preview" role="region" aria-label="Предпросмотр разметки"></div></fieldset>
 <button id="load">Открыть .txt</button><input id="file" type="file" accept=".txt,text/plain" hidden>
 <label for="speed">Скорость: <span id="speedValue"></span> пикс./с</label><input id="speed" type="range" min="5" max="180" value="40">
 <label for="size">Размер текста: <span id="sizeValue"></span> px</label><input id="size" type="range" min="24" max="100" value="48">
@@ -350,7 +358,58 @@ function setTheme(value){const theme=themes.includes(value)?value:'classic';docu
 let savedTheme='classic';try{savedTheme=localStorage.getItem('tochka-theme')||'classic'}catch(e){}setTheme(savedTheme);
 $('theme').addEventListener('change',()=>setTheme($('theme').value));
 try{$('editor').value=localStorage.getItem('tochka-text')||'Добро пожаловать в Студию Точка!\n\nВставьте свой текст, настройте скорость и нажмите «Читать».\n\nПодключите камеру и микрофон, чтобы записать выступление.'}catch(e){$('editor').value='Добро пожаловать в Студию Точка!'}
-function render(){ $('script').textContent=$('editor').value;$('script').style.fontSize=$('size').value+'px';$('script').style.transform=`translateY(${-offset}px) scaleX(${$('mirror').checked?-1:1})`;$('speedValue').textContent=$('speed').value;$('sizeValue').textContent=$('size').value;$('video').style.display=$('preview').checked?'block':'none';}
+// Coloured cues are stored as ranges, never as executable HTML.
+const cueColors={yellow:'#ffe08a',blue:'#a8d9ff',green:'#b7edbd',pink:'#ffc2df'};
+function paintRanges(ranges,start,end,color){
+ const next=[];for(const r of ranges){if(r.end<=start||r.start>=end)next.push({...r});else{if(r.start<start)next.push({...r,end:start});if(r.end>end)next.push({...r,start:end});}}
+ if(color&&end>start)next.push({start,end,color});
+ next.sort((a,b)=>a.start-b.start);return next.reduce((out,r)=>{const prev=out[out.length-1];if(prev&&prev.end===r.start&&prev.color===r.color)prev.end=r.end;else out.push(r);return out;},[]);
+}
+function moveRanges(ranges,oldText,newText){
+ let p=0;while(p<oldText.length&&p<newText.length&&oldText[p]===newText[p])p++;
+ let oldEnd=oldText.length,newEnd=newText.length;while(oldEnd>p&&newEnd>p&&oldText[oldEnd-1]===newText[newEnd-1]){oldEnd--;newEnd--;}
+ const delta=newEnd-oldEnd;
+ let next=[];
+ for(const r of ranges){
+  if(r.end<=p){next=paintRanges(next,r.start,r.end,r.color);continue;}
+  if(r.start>=oldEnd){next=paintRanges(next,r.start+delta,r.end+delta,r.color);continue;}
+  if(r.start<p)next=paintRanges(next,r.start,p,r.color);
+  // Inserted characters inherit a cue only for an edit strictly inside it.
+  if(p>r.start&&oldEnd<r.end&&newEnd>p)next=paintRanges(next,p,newEnd,r.color);
+  if(r.end>oldEnd)next=paintRanges(next,newEnd,r.end+delta,r.color);
+ }
+ return next;
+}
+let cueRanges=[],cueText=$('editor').value,cueCache='';
+try{const saved=JSON.parse(localStorage.getItem('tochka-cues')||'null');if(saved&&saved.text===cueText&&Array.isArray(saved.ranges)){const valid=saved.ranges.filter(r=>Number.isInteger(r.start)&&Number.isInteger(r.end)&&r.start>=0&&r.end<=cueText.length&&r.end>r.start&&Object.hasOwn(cueColors,r.color)).sort((a,b)=>a.start-b.start);if(valid.some((r,i)=>i>0&&r.start<valid[i-1].end)){$('cueStatus').textContent='Исправлена ошибочная разметка старой версии. Текст сохранён; выделите нужные фрагменты заново.';}else cueRanges=valid;}}catch(e){}
+function saveCues(){try{localStorage.setItem('tochka-cues',JSON.stringify({text:$('editor').value,ranges:cueRanges}));$('cueStatus').textContent='Разметка сохранена в этом браузере.';}catch(e){$('cueStatus').textContent='Не удалось сохранить разметку: хранилище браузера недоступно.';}}
+function drawCues(target,text){
+ const fragment=document.createDocumentFragment();let pos=0;
+ for(const r of cueRanges){fragment.append(document.createTextNode(text.slice(pos,r.start)));const mark=document.createElement('mark');mark.className='cue cue-'+r.color;mark.textContent=text.slice(r.start,r.end);fragment.append(mark);pos=r.end;}
+ fragment.append(document.createTextNode(text.slice(pos)));target.replaceChildren(fragment);
+}
+function renderCues(){const text=$('editor').value,key=JSON.stringify([text,cueRanges]);if(key===cueCache)return;drawCues($('script'),text);drawCues($('cuePreview'),text);cueCache=key;}
+let cueSelection=null;
+function rememberCueSelection(){
+ const editor=$('editor');let selected=null;
+ {
+  const selection=window.getSelection();
+  if(selection?.rangeCount&&!selection.isCollapsed){const range=selection.getRangeAt(0);for(const target of [$('cuePreview'),$('script')])if(target.contains(range.startContainer)&&target.contains(range.endContainer)){const before=document.createRange();before.selectNodeContents(target);before.setEnd(range.startContainer,range.startOffset);const start=before.toString().length;selected={start,end:start+range.toString().length};break;}}
+ }
+ if(!selected&&document.activeElement===editor)selected={start:editor.selectionStart,end:editor.selectionEnd};
+ if(selected){cueSelection={...selected,text:editor.value};if(selected.end>selected.start){const excerpt=editor.value.slice(selected.start,selected.end);$('cueStatus').textContent='Выделено '+(selected.end-selected.start)+' симв.: «'+excerpt.slice(0,65)+(excerpt.length>65?'…':'')+'». Выберите цвет.';}}
+}
+for(const event of ['select','keyup','mouseup','touchend','focus'])$('editor').addEventListener(event,rememberCueSelection);
+document.addEventListener('selectionchange',rememberCueSelection);
+for(const id of ['cuePreview','script'])$(id).addEventListener('mouseup',rememberCueSelection);
+function selectedCueRange(){rememberCueSelection();return cueSelection?.text===$('editor').value?cueSelection:null;}
+function applyCue(color){const selected=selectedCueRange();if(!selected||selected.start===selected.end){$('cueStatus').textContent='Выделите слово или предложение в тексте, предпросмотре или на экране суфлёра.';return;}const {start,end}=selected;cueRanges=paintRanges(cueRanges,start,end,color);saveCues();render();cueSelection=null;$('cueStatus').textContent='Фон '+(color?'применён':'убран')+' только для '+(end-start)+' выделенных символов. Разметка сохранена.';}
+for(const button of document.querySelectorAll('.cue-tools button'))button.addEventListener('pointerdown',e=>{rememberCueSelection();if(e.button===0)e.preventDefault();});
+for(const button of document.querySelectorAll('[data-cue]'))button.addEventListener('click',()=>applyCue(button.dataset.cue||null));
+$('accent').addEventListener('click',()=>{const editor=$('editor'),selected=selectedCueRange();if(!selected){$('cueStatus').textContent='Сначала выделите гласную для ударения.';return;}let {start,end}=selected;const text=editor.value;if(start===end&&start>0){start--;end=start+1;}if(end-start!==1||!/[аеёиоуыэюяaeiouy]/i.test(text.slice(start,end))){$('cueStatus').textContent='Выделите одну гласную или поставьте курсор сразу после неё, затем нажмите «Ударение».';return;}if(text[end]==='\u0301'){$('cueStatus').textContent='На этой гласной уже есть ударение.';return;}editor.setRangeText('\u0301',end,end,'end');editor.dispatchEvent(new Event('input',{bubbles:true}));editor.focus();});
+$('editor').addEventListener('input',()=>{cueSelection=null;cueRanges=moveRanges(cueRanges,cueText,$('editor').value);cueText=$('editor').value;saveCues();render();});
+
+function render(){ renderCues();$('script').style.fontSize=$('size').value+'px';$('script').style.transform=`translateY(${-offset}px) scaleX(${$('mirror').checked?-1:1})`;$('speedValue').textContent=$('speed').value;$('sizeValue').textContent=$('size').value;$('video').style.display=$('preview').checked?'block':'none';}
 function toggle(){playing=!playing;$('play').textContent=playing?'Ⅱ Пауза':'▶ Читать'}
 $('play').onclick=toggle;$('reset').onclick=()=>{offset=0;render()};
 for(const id of ['editor','speed','size','mirror','preview'])$(id).addEventListener('input',()=>{if(id==='editor'){try{localStorage.setItem('tochka-text',$('editor').value)}catch(e){}}render()});
