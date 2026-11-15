@@ -423,14 +423,14 @@ function validateProject(data){
  return {text:data.text,ranges,settings:{size:Number.isFinite(settings.size)&&settings.size>=24&&settings.size<=100?settings.size:48,speed:Number.isFinite(settings.speed)&&settings.speed>=5&&settings.speed<=180?settings.speed:40,mirror:settings.mirror===true}};
 }
 function projectData(){return {format:projectFormat,version:1,text:$('editor').value,highlights:cueRanges.map(r=>({...r})),settings:{size:Number($('size').value),speed:Number($('speed').value),mirror:$('mirror').checked}};}
-let projectDownloadUrl=null;
 $('saveProject').onclick=async()=>{
  error('');try{
-  const data=projectData();validateProject(data);const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'});
-  const name='Студия-Точка-'+new Date().toISOString().slice(0,10)+'.tochka.json';
-  if(projectDownloadUrl)URL.revokeObjectURL(projectDownloadUrl);projectDownloadUrl=URL.createObjectURL(blob);
-  let a=$('projectDownload');if(!a){a=document.createElement('a');a.id='projectDownload';a.className='download';$('projectStatus').after(a);}a.href=projectDownloadUrl;a.download=name;a.textContent='Скачать файл проекта';a.click();
-  $('projectStatus').textContent='Проект подготовлен для скачивания. Если файл не скачался, нажмите «Скачать файл проекта». На другом компьютере откройте его кнопкой «Открыть текст / проект».';
+  const data=projectData();validateProject(data);const json=JSON.stringify(data,null,2);
+  const name='studio-tochka-'+new Date().toISOString().slice(0,10)+'.tochka.json';
+  let panel=$('projectBackup');if(!panel){panel=document.createElement('details');panel.id='projectBackup';const summary=document.createElement('summary');summary.textContent='Резервное сохранение, если окно выбора файла не открылось';panel.append(summary);const help=document.createElement('p');help.className='status';help.textContent='Скопируйте весь текст ниже в Блокнот и сохраните как studio-tochka.tochka.json (тип: Все файлы, кодировка UTF-8). Это полный проект с цветами и ударениями.';panel.append(help);const field=document.createElement('textarea');field.id='projectBackupText';field.readOnly=true;field.setAttribute('aria-label','Данные проекта для резервного сохранения');panel.append(field);$('projectStatus').after(panel);}const backup=$('projectBackupText');backup.value=json;backup.onclick=()=>backup.select();
+  if(!window.showSaveFilePicker){panel.open=true;$('projectStatus').textContent='Этот браузер не поддерживает выбор файла для записи. Используйте резервное сохранение ниже.';return;}
+  let writer;const pending=setTimeout(()=>{$('projectStatus').textContent='Ожидается выбор файла. Если окно не появилось, используйте резервное сохранение ниже.';panel.open=true;},12000);
+  try{const handle=await window.showSaveFilePicker({suggestedName:name,types:[{description:'Проект Студии Точка',accept:{'application/json':['.json']}}]});writer=await handle.createWritable();await writer.write(json);await writer.close();$('projectStatus').textContent='Проект сохранён в выбранный файл. На другом компьютере нажмите «Открыть текст / проект».';panel.open=false;}catch(e){if(writer)await writer.abort().catch(()=>{});if(e.name==='AbortError'){$('projectStatus').textContent='Сохранение отменено. Файл не записан.';return;}panel.open=true;error('Браузер не разрешил запись файла: '+e.message+'. Используйте резервное сохранение.');}finally{clearTimeout(pending);}
  }catch(e){if(e.name!=='AbortError')error('Не удалось сохранить проект: '+e.message);}
 };
 $('load').onclick=()=>$('file').click();
