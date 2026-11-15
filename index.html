@@ -22,7 +22,7 @@ body{background:radial-gradient(ellipse at top right,var(--glow),transparent 65%
 <div class="cue-tools" role="group" aria-label="Цвет фона выделенного текста"><button type="button" data-cue="yellow">Жёлтый</button><button type="button" data-cue="blue">Голубой</button><button type="button" data-cue="green">Зелёный</button><button type="button" data-cue="pink">Розовый</button><button type="button" data-cue="">Убрать фон</button><button type="button" id="accent">Ударение а́</button></div>
 <p id="cueStatus" class="status" role="status">Для ударения выделите гласную или поставьте курсор сразу после неё. Удалить знак можно клавишей Backspace.</p>
 <label for="cuePreview">Предпросмотр разметки</label><div id="cuePreview" class="cue-preview" role="region" aria-label="Предпросмотр разметки"></div></fieldset>
-<button id="load">Открыть .txt</button><input id="file" type="file" accept=".txt,text/plain" hidden>
+<button id="saveProject">Сохранить текст с разметкой</button><button id="load">Открыть текст / проект</button><input id="file" type="file" accept=".txt,.json,text/plain,application/json" hidden><p id="projectStatus" class="status" role="status">Для переноса цветов и ударений сохраните проект .tochka.json. Откройте его в Студии Точка на другом компьютере.</p>
 <label for="speed">Скорость: <span id="speedValue"></span> пикс./с</label><input id="speed" type="range" min="5" max="180" value="40">
 <label for="size">Размер текста: <span id="sizeValue"></span> px</label><input id="size" type="range" min="24" max="100" value="48">
 <label class="check"><input id="mirror" type="checkbox"> Зеркальный текст</label>
@@ -413,7 +413,43 @@ function render(){ renderCues();$('script').style.fontSize=$('size').value+'px';
 function toggle(){playing=!playing;$('play').textContent=playing?'Ⅱ Пауза':'▶ Читать'}
 $('play').onclick=toggle;$('reset').onclick=()=>{offset=0;render()};
 for(const id of ['editor','speed','size','mirror','preview'])$(id).addEventListener('input',()=>{if(id==='editor'){try{localStorage.setItem('tochka-text',$('editor').value)}catch(e){}}render()});
-$('load').onclick=()=>$('file').click();$('file').onchange=async()=>{const f=$('file').files[0];if(f){$('editor').value=await f.text();$('editor').dispatchEvent(new Event('input'));offset=0;render()}};
+const projectFormat='studio-tochka-script';
+function validateProject(data){
+ if(!data||data.format!==projectFormat||data.version!==1)throw Error('Это не файл проекта Студии Точка или его версия не поддерживается.');
+ if(typeof data.text!=='string'||data.text.length>1000000||!Array.isArray(data.highlights)||data.highlights.length>50000)throw Error('Некорректный или слишком большой проект.');
+ let end=0;const ranges=[];
+ for(const r of data.highlights){if(!r||!Number.isInteger(r.start)||!Number.isInteger(r.end)||r.start<end||r.end<=r.start||r.end>data.text.length||!Object.hasOwn(cueColors,r.color))throw Error('В файле повреждены цветные выделения.');ranges.push({start:r.start,end:r.end,color:r.color});end=r.end;}
+ const settings=data.settings||{};
+ return {text:data.text,ranges,settings:{size:Number.isFinite(settings.size)&&settings.size>=24&&settings.size<=100?settings.size:48,speed:Number.isFinite(settings.speed)&&settings.speed>=5&&settings.speed<=180?settings.speed:40,mirror:settings.mirror===true}};
+}
+function projectData(){return {format:projectFormat,version:1,text:$('editor').value,highlights:cueRanges.map(r=>({...r})),settings:{size:Number($('size').value),speed:Number($('speed').value),mirror:$('mirror').checked}};}
+let projectDownloadUrl=null;
+$('saveProject').onclick=async()=>{
+ error('');try{
+  const data=projectData();validateProject(data);const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'});
+  const name='Студия-Точка-'+new Date().toISOString().slice(0,10)+'.tochka.json';
+  if(projectDownloadUrl)URL.revokeObjectURL(projectDownloadUrl);projectDownloadUrl=URL.createObjectURL(blob);
+  let a=$('projectDownload');if(!a){a=document.createElement('a');a.id='projectDownload';a.className='download';$('projectStatus').after(a);}a.href=projectDownloadUrl;a.download=name;a.textContent='Скачать файл проекта';a.click();
+  $('projectStatus').textContent='Проект подготовлен для скачивания. Если файл не скачался, нажмите «Скачать файл проекта». На другом компьютере откройте его кнопкой «Открыть текст / проект».';
+ }catch(e){if(e.name!=='AbortError')error('Не удалось сохранить проект: '+e.message);}
+};
+$('load').onclick=()=>$('file').click();
+$('file').onchange=async()=>{
+ const f=$('file').files[0];if(!f)return;
+ try{
+  if(f.size>5*1024*1024)throw Error('Файл больше 5 МБ.');
+  const raw=(await f.text()).replace(/^\uFEFF/,'');let imported;
+  if(/\.json$/i.test(f.name))imported=validateProject(JSON.parse(raw));
+  else{if(raw.length>1000000)throw Error('Текст слишком большой.');imported={text:raw,ranges:[],settings:null};}
+  // Validate fully before replacing any current text or highlights.
+  $('editor').value=imported.text;cueText=imported.text;cueRanges=imported.ranges;cueSelection=null;cueCache='';offset=0;
+  if(playing)toggle();
+  if(imported.settings){$('size').value=imported.settings.size;$('speed').value=imported.settings.speed;$('mirror').checked=imported.settings.mirror;}
+  try{localStorage.setItem('tochka-text',imported.text)}catch(e){}
+  saveCues();render();error('');$('projectStatus').textContent=imported.settings?'Проект открыт: текст, цвета, ударения и настройки чтения восстановлены.':'Текст открыт. В .txt нет цветовой разметки; ударения сохраняются как часть текста.';
+ }catch(e){error('Не удалось открыть файл. Текущий текст сохранён. '+e.message);}finally{$('file').value='';}
+};
+
 $('full').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('stage').requestFullscreen()}catch(e){error('Не удалось открыть полный экран: '+e.message)}};
 document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT|BUTTON/.test(e.target.tagName))return;if(e.code==='Space'){e.preventDefault();toggle()}if(e.code==='Home'){offset=0;render()}if(e.code==='ArrowUp'){e.preventDefault();offset=Math.max(0,offset-80);render()}if(e.code==='ArrowDown'){e.preventDefault();offset+=80;render()}});
 $('viewport').addEventListener('wheel',e=>{e.preventDefault();offset=Math.max(0,Math.min($('script').offsetHeight-$('viewport').clientHeight,offset+e.deltaY));render()},{passive:false});
