@@ -22,7 +22,7 @@ body{background:radial-gradient(ellipse at top right,var(--glow),transparent 65%
 <div class="cue-tools" role="group" aria-label="Цвет фона выделенного текста"><button type="button" data-cue="yellow">Жёлтый</button><button type="button" data-cue="blue">Голубой</button><button type="button" data-cue="green">Зелёный</button><button type="button" data-cue="pink">Розовый</button><button type="button" data-cue="">Убрать фон</button><button type="button" id="accent">Ударение а́</button></div>
 <p id="cueStatus" class="status" role="status">Для ударения выделите гласную или поставьте курсор сразу после неё. Удалить знак можно клавишей Backspace.</p>
 <label for="cuePreview">Предпросмотр разметки</label><div id="cuePreview" class="cue-preview" role="region" aria-label="Предпросмотр разметки"></div></fieldset>
-<button id="saveProject">Сохранить текст с разметкой</button><button id="load">Открыть текст / проект</button><input id="file" type="file" accept=".txt,.json,text/plain,application/json" hidden><p id="projectStatus" class="status" role="status">Для переноса цветов и ударений сохраните проект .tochka.json. Откройте его в Студии Точка на другом компьютере.</p>
+<a id="saveProject" class="download" role="button" download>Сохранить текст с разметкой</a><button id="load">Открыть текст / проект</button><input id="file" type="file" accept=".txt,.json,text/plain,application/json" hidden><p id="projectStatus" class="status" role="status">Для переноса цветов и ударений сохраните проект .tochka.json. Откройте его в Студии Точка на другом компьютере.</p>
 <label for="speed">Скорость: <span id="speedValue"></span> пикс./с</label><input id="speed" type="range" min="5" max="180" value="40">
 <label for="size">Размер текста: <span id="sizeValue"></span> px</label><input id="size" type="range" min="24" max="100" value="48">
 <label class="check"><input id="mirror" type="checkbox"> Зеркальный текст</label>
@@ -409,7 +409,7 @@ for(const button of document.querySelectorAll('[data-cue]'))button.addEventListe
 $('accent').addEventListener('click',()=>{const editor=$('editor'),selected=selectedCueRange();if(!selected){$('cueStatus').textContent='Сначала выделите гласную для ударения.';return;}let {start,end}=selected;const text=editor.value;if(start===end&&start>0){start--;end=start+1;}if(end-start!==1||!/[аеёиоуыэюяaeiouy]/i.test(text.slice(start,end))){$('cueStatus').textContent='Выделите одну гласную или поставьте курсор сразу после неё, затем нажмите «Ударение».';return;}if(text[end]==='\u0301'){$('cueStatus').textContent='На этой гласной уже есть ударение.';return;}editor.setRangeText('\u0301',end,end,'end');editor.dispatchEvent(new Event('input',{bubbles:true}));editor.focus();});
 $('editor').addEventListener('input',()=>{cueSelection=null;cueRanges=moveRanges(cueRanges,cueText,$('editor').value);cueText=$('editor').value;saveCues();render();});
 
-function render(){ renderCues();$('script').style.fontSize=$('size').value+'px';$('script').style.transform=`translateY(${-offset}px) scaleX(${$('mirror').checked?-1:1})`;$('speedValue').textContent=$('speed').value;$('sizeValue').textContent=$('size').value;$('video').style.display=$('preview').checked?'block':'none';}
+function render(){ renderCues();prepareProjectDownload();$('script').style.fontSize=$('size').value+'px';$('script').style.transform=`translateY(${-offset}px) scaleX(${$('mirror').checked?-1:1})`;$('speedValue').textContent=$('speed').value;$('sizeValue').textContent=$('size').value;$('video').style.display=$('preview').checked?'block':'none';}
 function toggle(){playing=!playing;$('play').textContent=playing?'Ⅱ Пауза':'▶ Читать'}
 $('play').onclick=toggle;$('reset').onclick=()=>{offset=0;render()};
 for(const id of ['editor','speed','size','mirror','preview'])$(id).addEventListener('input',()=>{if(id==='editor'){try{localStorage.setItem('tochka-text',$('editor').value)}catch(e){}}render()});
@@ -423,16 +423,19 @@ function validateProject(data){
  return {text:data.text,ranges,settings:{size:Number.isFinite(settings.size)&&settings.size>=24&&settings.size<=100?settings.size:48,speed:Number.isFinite(settings.speed)&&settings.speed>=5&&settings.speed<=180?settings.speed:40,mirror:settings.mirror===true}};
 }
 function projectData(){return {format:projectFormat,version:1,text:$('editor').value,highlights:cueRanges.map(r=>({...r})),settings:{size:Number($('size').value),speed:Number($('speed').value),mirror:$('mirror').checked}};}
-$('saveProject').onclick=async()=>{
- error('');try{
-  const data=projectData();validateProject(data);const json=JSON.stringify(data,null,2);
-  const name='studio-tochka-'+new Date().toISOString().slice(0,10)+'.tochka.json';
-  let panel=$('projectBackup');if(!panel){panel=document.createElement('details');panel.id='projectBackup';const summary=document.createElement('summary');summary.textContent='Резервное сохранение, если окно выбора файла не открылось';panel.append(summary);const help=document.createElement('p');help.className='status';help.textContent='Скопируйте весь текст ниже в Блокнот и сохраните как studio-tochka.tochka.json (тип: Все файлы, кодировка UTF-8). Это полный проект с цветами и ударениями.';panel.append(help);const field=document.createElement('textarea');field.id='projectBackupText';field.readOnly=true;field.setAttribute('aria-label','Данные проекта для резервного сохранения');panel.append(field);$('projectStatus').after(panel);}const backup=$('projectBackupText');backup.value=json;backup.onclick=()=>backup.select();
-  if(!window.showSaveFilePicker){panel.open=true;$('projectStatus').textContent='Этот браузер не поддерживает выбор файла для записи. Используйте резервное сохранение ниже.';return;}
-  let writer;const pending=setTimeout(()=>{$('projectStatus').textContent='Ожидается выбор файла. Если окно не появилось, используйте резервное сохранение ниже.';panel.open=true;},12000);
-  try{const handle=await window.showSaveFilePicker({suggestedName:name,types:[{description:'Проект Студии Точка',accept:{'application/json':['.json']}}]});writer=await handle.createWritable();await writer.write(json);await writer.close();$('projectStatus').textContent='Проект сохранён в выбранный файл. На другом компьютере нажмите «Открыть текст / проект».';panel.open=false;}catch(e){if(writer)await writer.abort().catch(()=>{});if(e.name==='AbortError'){$('projectStatus').textContent='Сохранение отменено. Файл не записан.';return;}panel.open=true;error('Браузер не разрешил запись файла: '+e.message+'. Используйте резервное сохранение.');}finally{clearTimeout(pending);}
- }catch(e){if(e.name!=='AbortError')error('Не удалось сохранить проект: '+e.message);}
-};
+let projectFileUrl=null,projectFileContents='';
+function prepareProjectDownload(){
+ const link=$('saveProject');
+ try{const data=projectData();validateProject(data);const contents=JSON.stringify(data,null,2);if(contents===projectFileContents&&projectFileUrl)return;
+  const next=URL.createObjectURL(new Blob([contents],{type:'application/octet-stream'}));
+  const old=projectFileUrl;projectFileUrl=next;projectFileContents=contents;
+  link.href=next;link.download='studio-tochka-'+new Date().toISOString().slice(0,10)+'.tochka.json';link.removeAttribute('aria-disabled');if(old)URL.revokeObjectURL(old);
+ }catch(e){link.removeAttribute('href');link.setAttribute('aria-disabled','true');$('projectStatus').textContent='Не удалось подготовить файл: '+e.message;}
+}
+$('saveProject').addEventListener('click',e=>{
+ if(!projectFileUrl){e.preventDefault();error('Файл ещё не подготовлен. Измените текст и попробуйте снова.');return;}
+ $('projectStatus').textContent='Файл передан браузеру для скачивания. Он содержит текст, цвета и ударения. Проверьте загрузки браузера.';
+});
 $('load').onclick=()=>$('file').click();
 $('file').onchange=async()=>{
  const f=$('file').files[0];if(!f)return;
