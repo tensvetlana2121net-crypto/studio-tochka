@@ -10,6 +10,11 @@ html[data-theme="berry"]{--bg:#25111d;--panel:#3a2030;--field:#291522;--border:#
 body{background:radial-gradient(ellipse at top right,var(--glow),transparent 65%),var(--bg)}aside{background:var(--panel);border:1px solid var(--border)}header{border-color:var(--border)}textarea,select,input[type=number]{background:var(--field);border-color:var(--border)}button,.download{background:var(--accent)}input,meter{accent-color:var(--accent)}.toolbar{background:var(--panel)}.stage{background:#000}.script{color:#fff}button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #f5c65c;outline-offset:3px}
 
 .cue-tools{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.cue-tools button{font-size:13px;padding:8px;margin:0;border:2px solid transparent}.cue-tools [data-cue]{color:#161b22;font-weight:700}.cue-tools [data-cue="yellow"],.cue-yellow{background:#ffe08a}.cue-tools [data-cue="blue"],.cue-blue{background:#a8d9ff}.cue-tools [data-cue="green"],.cue-green{background:#b7edbd}.cue-tools [data-cue="pink"],.cue-pink{background:#ffc2df}.cue-tools [data-cue=""]{background:#e6e6ed}.cue{color:#161b22;box-decoration-break:clone;-webkit-box-decoration-break:clone;border-radius:.12em;padding:0 .04em}.cue-preview{background:#000;color:#fff;padding:12px;border:1px solid var(--border);border-radius:8px;max-height:160px;overflow:auto;white-space:pre-wrap;line-height:1.7;overflow-wrap:anywhere}.cue-tools button:focus-visible{border-color:#fff;outline:2px solid #000}
+/* Expanded cue editor */
+.cue-preview-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.cue-preview-heading label{margin:8px 0}.cue-preview-heading button{font-size:13px;padding:8px 10px;white-space:nowrap}
+#cuePanel.cue-expanded{position:fixed;inset:0;z-index:10000;width:100%;height:100dvh;min-width:0;margin:0!important;border-radius:0!important;padding:16px!important;background:var(--panel,#1c2030);display:flex;flex-direction:column;gap:8px;overflow:hidden;box-sizing:border-box}
+#cuePanel.cue-expanded legend{display:none}#cuePanel.cue-expanded>p{margin:0;font-size:14px}#cuePanel.cue-expanded .cue-tools{flex-shrink:0;margin:0}#cuePanel.cue-expanded .cue-preview-heading{flex-shrink:0;order:-1}#cuePanel.cue-expanded .cue-preview{flex:1;min-height:0;max-height:none;width:100%;font-size:clamp(22px,2.2vw,34px);line-height:1.8;padding:24px;overflow:auto;user-select:text;cursor:text;scrollbar-gutter:stable}#cuePanel.cue-expanded .cue-tools button{font-size:16px;padding:10px 16px}
+@media(max-width:600px){#cuePanel.cue-expanded{padding:10px!important;gap:5px}#cuePanel.cue-expanded .cue-preview{padding:14px}#cuePanel.cue-expanded .cue-tools button{padding:8px;font-size:14px}}
 </style>
 <header><h1>Студия Точка <small>телесуфлёр</small></h1><span id="clock">00:00</span></header>
 <main><aside>
@@ -17,11 +22,11 @@ body{background:radial-gradient(ellipse at top right,var(--glow),transparent 65%
 <label for="theme">Цвет интерфейса</label><select id="theme"><option value="classic">Классическая — чёрная</option><option value="violet">Фиолетовая</option><option value="ocean">Морская — синяя</option><option value="forest">Лесная — зелёная</option><option value="berry">Ягодная — розовая</option></select>
 <label for="editor">Текст выступления</label><textarea id="editor" placeholder="Вставьте текст…"></textarea>
 
-<fieldset style="border:1px solid var(--border);border-radius:8px;margin:12px 0;padding:10px"><legend>Цветные реплики и ударения</legend>
+<fieldset id="cuePanel" style="border:1px solid var(--border);border-radius:8px;margin:12px 0;padding:10px"><legend>Цветные реплики и ударения</legend>
 <p class="status" style="margin:0">Выделите фрагмент в поле текста, в предпросмотре или на экране суфлёра. Затем нажмите цвет. Цвета можно закрепить за ведущими.</p>
 <div class="cue-tools" role="group" aria-label="Цвет фона выделенного текста"><button type="button" data-cue="yellow">Жёлтый</button><button type="button" data-cue="blue">Голубой</button><button type="button" data-cue="green">Зелёный</button><button type="button" data-cue="pink">Розовый</button><button type="button" data-cue="">Убрать фон</button><button type="button" id="accent">Ударение а́</button></div>
 <p id="cueStatus" class="status" role="status">Для ударения выделите гласную или целое слово и нажмите «Ударение». Для неоднозначного слова появится выбор варианта. Удалить знак можно клавишей Backspace.</p>
-<label for="cuePreview">Предпросмотр разметки</label><div id="cuePreview" class="cue-preview" role="region" aria-label="Предпросмотр разметки"></div></fieldset>
+<div class="cue-preview-heading"><label for="cuePreview">Предпросмотр разметки</label><button type="button" id="expandCuePreview" aria-controls="cuePanel" aria-expanded="false" aria-label="Развернуть предпросмотр разметки на весь экран">↗ На весь экран</button></div><div id="cuePreview" tabindex="0" class="cue-preview" role="region" aria-label="Предпросмотр разметки"></div></fieldset>
 <div id="wordAccentChoices" class="cue-tools" aria-label="Выбор ударения слова"></div><fieldset style="border:1px solid var(--border);border-radius:8px;margin:12px 0;padding:10px"><legend>Автоударения — словарная проверка</legend><label for="accentMode">Язык текста</label><select id="accentMode"><option value="ru">Современный русский — словарь</option><option value="cu">Старинный / церковнославянский — личный словарь</option></select><p class="status">Обработка на вашем компьютере. Словарь не выбирает значение омографов по контексту. Незнакомые слова и старинные формы требуют проверки. Ваши ударения сохраняются.</p><label><input type="checkbox" id="wholeTextAccent"> Расставить ударения во всём русском тексте</label><p class="status">Галочка применяет словарные ударения сразу и при вводе текста. Слова с неоднозначным ударением остаются для проверки; ё и односложные слова не требуют знака. Снятие галочки не удаляет поставленные знаки.</p><button id="autoAccent">Проверить и предложить ударения</button><button id="rememberAccent">Запомнить ударение слова</button><details><summary>ИИ — проверка русского текста по контексту</summary><p class="status">Бесплатные модели OpenRouter. Нужны интернет и свой ключ. Ключ используется только в этой вкладке и не включается в файл проекта. При нажатии кнопки текст передаётся OpenRouter и выбранному им поставщику ИИ. Бесплатная квота и доступность зависят от аккаунта; длинный текст делится на несколько запросов. ИИ может ошибаться.</p><a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener noreferrer">Получить ключ OpenRouter</a><label for="accentApiKey">Ключ OpenRouter</label><input id="accentApiKey" type="password" autocomplete="off" placeholder="Вставьте ключ только здесь"><button id="aiAccent">Проверить весь русский текст с ИИ</button></details><p id="autoAccentStatus" class="status" role="status">Сначала получите предложения и просмотрите результат, затем примените.</p><div id="accentPreviewPanel" hidden><label for="accentPreview">Предложения ударений</label><textarea id="accentPreview" readonly></textarea><button id="applyAutoAccent" disabled>Применить ударения</button><button id="undoAutoAccent" disabled>Отменить автоударения</button><div id="accentReview" class="cue-tools" aria-label="Слова для ручной проверки"></div></div></fieldset><a id="saveProject" class="download" role="button" download>Сохранить текст с разметкой</a><button id="load">Открыть текст / проект</button><input id="file" type="file" accept=".txt,.json,text/plain,application/json" hidden><p id="projectStatus" class="status" role="status">Для переноса цветов и ударений сохраните проект .tochka.json. Откройте его в Студии Точка на другом компьютере.</p>
 <label for="speed">Скорость: <span id="speedValue"></span> пикс./с</label><input id="speed" type="range" min="5" max="180" value="40">
 <label for="size">Размер текста: <span id="sizeValue"></span> px</label><input id="size" type="range" min="24" max="100" value="48">
@@ -415,6 +420,26 @@ for(const button of document.querySelectorAll('.cue-tools button'))button.addEve
 for(const button of document.querySelectorAll('[data-cue]'))button.addEventListener('click',()=>applyCue(button.dataset.cue||null));
 $('accent').addEventListener('click',()=>accentSelectedWord());
 $('editor').addEventListener('input',()=>{cueSelection=null;cueRanges=moveRanges(cueRanges,cueText,$('editor').value);cueText=$('editor').value;saveCues();render();});
+// Expand the existing preview and tools together, retaining the original selection/range model.
+let cueExpanded=false,cuePreviousOverflow='';
+function expandCuePreview(expand){
+ if(cueExpanded===expand)return;cueExpanded=expand;
+ const panel=$('cuePanel'),button=$('expandCuePreview');
+ if(expand){cuePreviousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';panel.classList.add('cue-expanded');panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-label','Редактирование фонов на весь экран');}
+ else{document.body.style.overflow=cuePreviousOverflow;panel.classList.remove('cue-expanded');panel.removeAttribute('role');panel.removeAttribute('aria-modal');panel.removeAttribute('aria-label');}
+ button.textContent=expand?'↙ Вернуть предпросмотр':'↗ На весь экран';button.setAttribute('aria-expanded',String(expand));button.setAttribute('aria-label',expand?'Вернуть предпросмотр в исходное положение':'Развернуть предпросмотр разметки на весь экран');button.focus({preventScroll:true});
+}
+$('expandCuePreview').onclick=()=>expandCuePreview(!cueExpanded);
+document.addEventListener('keydown',event=>{
+ if(!cueExpanded)return;
+ if(event.key==='Escape'){event.preventDefault();expandCuePreview(false);return;}
+ if(event.key==='Tab'){
+  const controls=[...$('cuePanel').querySelectorAll('button,[tabindex="0"]')].filter(e=>!e.disabled);
+  const first=controls[0],last=controls[controls.length-1];
+  if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+  else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+ }
+});
 
 // Dictionary: zdarsch/russian-stress-marker, MIT, pinned 1cd1a1555f01bbbaeebb2d4fd15fe5e9d52c9a37.
 const accentVowels=/[аеёиоуыэюяѣѧѫѩѭѡѹꙋіѵ]/ig;
@@ -774,3 +799,4 @@ SOFTWARE.
 Source: https://github.com/zdarsch/russian-stress-marker/tree/1cd1a1555f01bbbaeebb2d4fd15fe5e9d52c9a37
 -->
 </html>
+
