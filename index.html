@@ -15,14 +15,16 @@ body{background:radial-gradient(ellipse at top right,var(--glow),transparent 65%
 #cuePanel.cue-expanded{position:fixed;inset:0;z-index:10000;width:100%;height:100dvh;min-width:0;margin:0!important;border-radius:0!important;padding:16px!important;background:var(--panel,#1c2030);display:flex;flex-direction:column;gap:8px;overflow:hidden;box-sizing:border-box}
 #cuePanel.cue-expanded legend{display:none}#cuePanel.cue-expanded>p{margin:0;font-size:14px}#cuePanel.cue-expanded .cue-tools{flex-shrink:0;margin:0}#cuePanel.cue-expanded .cue-preview-heading{flex-shrink:0;order:-1}#cuePanel.cue-expanded .cue-preview{flex:1;min-height:0;max-height:none;width:100%;font-size:clamp(22px,2.2vw,34px);line-height:1.8;padding:24px;overflow:auto;user-select:text;cursor:text;scrollbar-gutter:stable}#cuePanel.cue-expanded .cue-tools button{font-size:16px;padding:10px 16px}
 @media(max-width:600px){#cuePanel.cue-expanded{padding:10px!important;gap:5px}#cuePanel.cue-expanded .cue-preview{padding:14px}#cuePanel.cue-expanded .cue-tools button{padding:8px;font-size:14px}}
+/* Speaker rules layout */
+#quickControls{position:sticky;top:0;z-index:100;background:var(--panel,#1c2030);border-bottom:1px solid var(--border);padding:8px 18px;display:flex;flex-wrap:wrap;gap:6px;box-shadow:0 5px 18px #0005}#quickControls button{margin:0;font-size:14px;padding:10px 12px}#quickPlay,#quickRecord{font-weight:700}#speakerRules{border:1px solid var(--border);border-radius:10px;padding:12px;margin:12px 0}#speakerRules summary{font-weight:700;cursor:pointer}.speaker-rule{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:12px 0;padding-bottom:12px;border-bottom:1px solid var(--border)}.speaker-rule label{grid-column:1/-1;margin:0}.speaker-rule input[type=text]{grid-column:1/-1;min-width:0;width:100%;padding:9px;color:inherit;background:var(--field);border:1px solid var(--border);border-radius:8px}.speaker-rule select{margin:0;min-width:0;font-size:13px}body:has(#cuePanel.cue-expanded) #quickControls{visibility:hidden}@media(max-width:600px){#quickControls{padding:6px;gap:4px}#quickControls button{font-size:12px;padding:8px}}
 </style>
 <header><h1>Студия Точка <small>телесуфлёр</small></h1><span id="clock">00:00</span></header>
-<main><aside>
+<nav id="quickControls" aria-label="Основное управление телесуфлёром"><button id="quickPlay">▶ Читать</button><button id="quickReset">В начало</button><button id="quickMirror" aria-pressed="false">↔ Зеркало: выкл.</button><button id="quickAudio">Подключить звук</button><button id="quickCamera">Подключить камеру</button><button id="quickRecord" disabled>● Запись</button><button id="quickStop" disabled>■ Стоп</button><button id="quickFull">Полный экран</button></nav><main><aside>
 <p class="status">Автор проекта — Светлана Тен<br>Телестудия «Точка»</p>
 <label for="theme">Цвет интерфейса</label><select id="theme"><option value="classic">Классическая — чёрная</option><option value="violet">Фиолетовая</option><option value="ocean">Морская — синяя</option><option value="forest">Лесная — зелёная</option><option value="berry">Ягодная — розовая</option></select>
 <label for="editor">Текст выступления</label><textarea id="editor" placeholder="Вставьте текст…"></textarea>
 
-<fieldset id="cuePanel" style="border:1px solid var(--border);border-radius:8px;margin:12px 0;padding:10px"><legend>Цветные реплики и ударения</legend>
+<details id="speakerRules" open><summary>Автовыделение ведущих — 3 правила</summary><p class="status">Имя выделяется каждый раз в начале новой строки, в том числе после пробелов. Регистр и ударения не мешают поиску. Можно выделять только имя или всю строку реплики. Ручные цвета имеют приоритет.</p><div class="speaker-rule"><label><input type="checkbox" id="speakerEnabled0" checked> Правило 1</label><input type="text" id="speakerName0" maxlength="80" aria-label="Имя ведущего 1" placeholder="Например: Махар"><select id="speakerColor0" aria-label="Цвет ведущего 1"><option value="yellow">Жёлтый</option><option value="blue">Голубой</option><option value="green">Зелёный</option><option value="pink">Розовый</option></select><select id="speakerScope0" aria-label="Что выделять для ведущего 1"><option value="name">Только имя</option><option value="line">Всю строку</option></select></div><div class="speaker-rule"><label><input type="checkbox" id="speakerEnabled1" checked> Правило 2</label><input type="text" id="speakerName1" maxlength="80" aria-label="Имя ведущего 2" placeholder="Имя ведущего"><select id="speakerColor1" aria-label="Цвет ведущего 2"><option value="yellow">Жёлтый</option><option value="blue">Голубой</option><option value="green">Зелёный</option><option value="pink">Розовый</option></select><select id="speakerScope1" aria-label="Что выделять для ведущего 2"><option value="name">Только имя</option><option value="line">Всю строку</option></select></div><div class="speaker-rule"><label><input type="checkbox" id="speakerEnabled2" checked> Правило 3</label><input type="text" id="speakerName2" maxlength="80" aria-label="Имя ведущего 3" placeholder="Имя ведущего"><select id="speakerColor2" aria-label="Цвет ведущего 3"><option value="yellow">Жёлтый</option><option value="blue">Голубой</option><option value="green">Зелёный</option><option value="pink">Розовый</option></select><select id="speakerScope2" aria-label="Что выделять для ведущего 3"><option value="name">Только имя</option><option value="line">Всю строку</option></select></div><p id="speakerStatus" class="status" role="status">Укажите до трёх имён — фоны появятся автоматически.</p></details><fieldset id="cuePanel" style="border:1px solid var(--border);border-radius:8px;margin:12px 0;padding:10px"><legend>Цветные реплики и ударения</legend>
 <p class="status" style="margin:0">Выделите фрагмент в поле текста, в предпросмотре или на экране суфлёра. Затем нажмите цвет. Цвета можно закрепить за ведущими.</p>
 <div class="cue-tools" role="group" aria-label="Цвет фона выделенного текста"><button type="button" data-cue="yellow">Жёлтый</button><button type="button" data-cue="blue">Голубой</button><button type="button" data-cue="green">Зелёный</button><button type="button" data-cue="pink">Розовый</button><button type="button" data-cue="">Убрать фон</button><button type="button" id="accent">Ударение а́</button></div>
 <p id="cueStatus" class="status" role="status">Для ударения выделите гласную или целое слово и нажмите «Ударение». Для неоднозначного слова появится выбор варианта. Удалить знак можно клавишей Backspace.</p>
@@ -395,10 +397,10 @@ function drawCues(target,text){
  const visible=s=>showAccents?s:s.replace(/\u0301/g,'');
  if(!showHighlights){target.replaceChildren(document.createTextNode(visible(text)));return;}
  const fragment=document.createDocumentFragment();let pos=0;
- for(const r of cueRanges){fragment.append(document.createTextNode(visible(text.slice(pos,r.start))));const mark=document.createElement('mark');mark.className='cue cue-'+r.color;mark.textContent=visible(text.slice(r.start,r.end));fragment.append(mark);pos=r.end;}
+ for(const r of effectiveCueRanges()){fragment.append(document.createTextNode(visible(text.slice(pos,r.start))));const mark=document.createElement('mark');mark.className='cue cue-'+r.color;mark.textContent=visible(text.slice(r.start,r.end));fragment.append(mark);pos=r.end;}
  fragment.append(document.createTextNode(visible(text.slice(pos))));target.replaceChildren(fragment);
 }
-function renderCues(){const text=$('editor').value,key=JSON.stringify([text,cueRanges,stageAccents,stageHighlights]);if(key===cueCache)return;drawCues($('script'),text);drawCues($('cuePreview'),text);cueCache=key;}
+function renderCues(){const text=$('editor').value,key=JSON.stringify([text,cueRanges,speakerRules,stageAccents,stageHighlights]);if(key===cueCache)return;drawCues($('script'),text);drawCues($('cuePreview'),text);cueCache=key;}
 $('stageAccents').onclick=()=>{stageAccents=!stageAccents;$('stageAccents').textContent='Ударения в эфире: '+(stageAccents?'вкл.':'выкл.');$('stageAccents').setAttribute('aria-pressed',String(stageAccents));render();};
 $('stageHighlights').onclick=()=>{stageHighlights=!stageHighlights;$('stageHighlights').textContent='Выделения в эфире: '+(stageHighlights?'вкл.':'выкл.');$('stageHighlights').setAttribute('aria-pressed',String(stageHighlights));render();};
 let cueSelection=null;
@@ -582,7 +584,37 @@ $('aiAccent').onclick=async()=>{
  finally{accentBusy=false;$('aiAccent').disabled=false;}
 };
 
-function render(){ renderCues();prepareProjectDownload();$('script').style.fontSize=$('size').value+'px';$('script').style.transform=`translateY(${-offset}px) scaleX(${$('mirror').checked?-1:1})`;$('speedValue').textContent=$('speed').value;$('sizeValue').textContent=$('size').value;$('video').style.display=$('preview').checked?'block':'none';}
+
+
+// Speaker rules: bundled
+// Three literal, line-start speaker rules. Derived marks never overwrite manual ranges.
+function normalizeSpeakerRules(value){return Array.from({length:3},(_,i)=>{const r=Array.isArray(value)?value[i]:null;return {name:typeof r?.name==='string'?r.name.replace(/\u0301/g,'').trim().slice(0,80):'',color:Object.hasOwn(cueColors,r?.color)?r.color:['yellow','blue','pink'][i],enabled:r?.enabled!==false,scope:r?.scope==='line'?'line':'name'};});}
+function speakerRanges(text,rules){
+ let ranges=[];
+ for(const rule of rules){
+  if(!rule.enabled||!rule.name)continue;
+  const literal=[...rule.name].map(c=>c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+(/[аеёиоуыэюя]/iu.test(c)?'\\u0301?':'')).join('');
+  const pattern=new RegExp('^[\\t ]*('+literal+')(?![\\p{L}\\p{M}\\p{N}_])','gimu');
+  for(const match of text.matchAll(pattern)){const start=match.index+match[0].length-match[1].length;let end=start+match[1].length;if(rule.scope==='line'){const next=text.indexOf('\n',end);end=next<0?text.length:next;if(text[end-1]==='\r')end--; }ranges=paintRanges(ranges,start,end,rule.color);}
+ }
+ return ranges;
+}
+function effectiveCueRanges(){let ranges=speakerRanges($('editor').value,speakerRules);for(const r of cueRanges)ranges=paintRanges(ranges,r.start,r.end,r.color);return ranges;}
+let speakerRules=normalizeSpeakerRules(null);
+try{speakerRules=normalizeSpeakerRules(JSON.parse(localStorage.getItem('tochka-speaker-rules')||'null'));}catch(e){}
+function showSpeakerRules(){for(let i=0;i<3;i++){const r=speakerRules[i];$('speakerName'+i).value=r.name;$('speakerColor'+i).value=r.color;$('speakerEnabled'+i).checked=r.enabled;$('speakerScope'+i).value=r.scope;}}
+showSpeakerRules();
+function updateSpeakerRules(){speakerRules=normalizeSpeakerRules(Array.from({length:3},(_,i)=>({name:$('speakerName'+i).value,color:$('speakerColor'+i).value,enabled:$('speakerEnabled'+i).checked,scope:$('speakerScope'+i).value})));try{localStorage.setItem('tochka-speaker-rules',JSON.stringify(speakerRules))}catch(e){}cueCache='';render();$('speakerStatus').textContent='Автоматически выделено фрагментов: '+speakerRanges($('editor').value,speakerRules).length+'. Правила сохранены.';}
+for(let i=0;i<3;i++)for(const prefix of ['speakerName','speakerColor','speakerEnabled','speakerScope'])$(prefix+i).addEventListener(prefix==='speakerName'?'input':'change',updateSpeakerRules);
+// The pinned toolbar uses the same handlers and reflects their actual disabled/recording state.
+for(const [quick,original] of [['quickPlay','play'],['quickReset','reset'],['quickAudio','connectAudio'],['quickCamera','connectCamera'],['quickRecord','record'],['quickStop','stop'],['quickFull','full']]){
+ $(quick).onclick=()=>$(original).click();
+ const sync=()=>{$(quick).disabled=$(original).disabled;$(quick).textContent=$(original).textContent;};sync();new MutationObserver(sync).observe($(original),{attributes:true,childList:true,subtree:true,characterData:true});
+}
+function syncQuickMirror(){$('quickMirror').textContent='↔ Зеркало: '+($('mirror').checked?'вкл.':'выкл.');$('quickMirror').setAttribute('aria-pressed',String($('mirror').checked));}
+$('quickMirror').onclick=()=>{$('mirror').checked=!$('mirror').checked;$('mirror').dispatchEvent(new Event('input',{bubbles:true}));syncQuickMirror();};$('mirror').addEventListener('input',syncQuickMirror);syncQuickMirror();
+
+function render(){ syncQuickMirror();renderCues();prepareProjectDownload();$('script').style.fontSize=$('size').value+'px';$('script').style.transform=`translateY(${-offset}px) scaleX(${$('mirror').checked?-1:1})`;$('speedValue').textContent=$('speed').value;$('sizeValue').textContent=$('size').value;$('video').style.display=$('preview').checked?'block':'none';}
 function toggle(){playing=!playing;$('play').textContent=playing?'Ⅱ Пауза':'▶ Читать'}
 $('play').onclick=toggle;$('reset').onclick=()=>{offset=0;render()};
 for(const id of ['editor','speed','size','mirror','preview'])$(id).addEventListener('input',()=>{if(id==='editor'){try{localStorage.setItem('tochka-text',$('editor').value)}catch(e){}}render()});
@@ -591,11 +623,11 @@ function validateProject(data){
  if(!data||data.format!==projectFormat||data.version!==1)throw Error('Это не файл проекта Студии Точка или его версия не поддерживается.');
  if(typeof data.text!=='string'||data.text.length>1000000||!Array.isArray(data.highlights)||data.highlights.length>50000)throw Error('Некорректный или слишком большой проект.');
  let end=0;const ranges=[];
- for(const r of data.highlights){if(!r||!Number.isInteger(r.start)||!Number.isInteger(r.end)||r.start<end||r.end<=r.start||r.end>data.text.length||!Object.hasOwn(cueColors,r.color))throw Error('В файле повреждены цветные выделения.');ranges.push({start:r.start,end:r.end,color:r.color});end=r.end;}
+ const importedMarks=Array.isArray(data.speakerRules)&&data.manualHighlights!==undefined?data.manualHighlights:data.highlights;if(!Array.isArray(importedMarks)||importedMarks.length>50000)throw Error('Повреждена ручная разметка.');for(const r of importedMarks){if(!r||!Number.isInteger(r.start)||!Number.isInteger(r.end)||r.start<end||r.end<=r.start||r.end>data.text.length||!Object.hasOwn(cueColors,r.color))throw Error('В файле повреждены цветные выделения.');ranges.push({start:r.start,end:r.end,color:r.color});end=r.end;}
  const settings=data.settings||{};
- const overrides={};if(data.accentOverrides&&typeof data.accentOverrides==='object')for(const [key,value] of Object.entries(data.accentOverrides).slice(0,5000))if(typeof value==='string'&&validAccentOverride(key,value))overrides[key]=value;return {text:data.text,ranges,accentOverrides:overrides,settings:{size:Number.isFinite(settings.size)&&settings.size>=24&&settings.size<=100?settings.size:48,speed:Number.isFinite(settings.speed)&&settings.speed>=5&&settings.speed<=180?settings.speed:40,mirror:settings.mirror===true}};
+ const overrides={};if(data.accentOverrides&&typeof data.accentOverrides==='object')for(const [key,value] of Object.entries(data.accentOverrides).slice(0,5000))if(typeof value==='string'&&validAccentOverride(key,value))overrides[key]=value;return {text:data.text,ranges,speakerRules:typeof normalizeSpeakerRules==='function'?normalizeSpeakerRules(data.speakerRules):[],accentOverrides:overrides,settings:{size:Number.isFinite(settings.size)&&settings.size>=24&&settings.size<=100?settings.size:48,speed:Number.isFinite(settings.speed)&&settings.speed>=5&&settings.speed<=180?settings.speed:40,mirror:settings.mirror===true}};
 }
-function projectData(){return {format:projectFormat,version:1,text:$('editor').value,highlights:cueRanges.map(r=>({...r})),accentOverrides:{...accentOverrides},settings:{size:Number($('size').value),speed:Number($('speed').value),mirror:$('mirror').checked}};}
+function projectData(){return {format:projectFormat,version:1,text:$('editor').value,highlights:(typeof effectiveCueRanges==='function'?effectiveCueRanges():cueRanges).map(r=>({...r})),speakerRules:typeof speakerRules==='undefined'?[]:speakerRules,manualHighlights:cueRanges.map(r=>({...r})),accentOverrides:{...accentOverrides},settings:{size:Number($('size').value),speed:Number($('speed').value),mirror:$('mirror').checked}};}
 let projectFileUrl=null,projectFileContents='';
 function prepareProjectDownload(){
  const link=$('saveProject');
@@ -618,7 +650,7 @@ $('file').onchange=async()=>{
   if(/\.json$/i.test(f.name))imported=validateProject(JSON.parse(raw));
   else{if(raw.length>1000000)throw Error('Текст слишком большой.');imported={text:raw,ranges:[],settings:null};}
   // Validate fully before replacing any current text or highlights.
-  if(imported.accentOverrides){accentOverrides={...accentOverrides,...imported.accentOverrides};try{localStorage.setItem('tochka-accent-overrides',JSON.stringify(accentOverrides))}catch(e){}}$('editor').value=imported.text;cueText=imported.text;cueRanges=imported.ranges;cueSelection=null;cueCache='';offset=0;
+  if(imported.speakerRules&&typeof normalizeSpeakerRules==='function'){speakerRules=normalizeSpeakerRules(imported.speakerRules);showSpeakerRules();try{localStorage.setItem('tochka-speaker-rules',JSON.stringify(speakerRules))}catch(e){}}if(imported.accentOverrides){accentOverrides={...accentOverrides,...imported.accentOverrides};try{localStorage.setItem('tochka-accent-overrides',JSON.stringify(accentOverrides))}catch(e){}}$('editor').value=imported.text;cueText=imported.text;cueRanges=imported.ranges;cueSelection=null;cueCache='';offset=0;
   if(playing)toggle();
   if(imported.settings){$('size').value=imported.settings.size;$('speed').value=imported.settings.speed;$('mirror').checked=imported.settings.mirror;}
   try{localStorage.setItem('tochka-text',imported.text)}catch(e){}
